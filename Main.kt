@@ -16,7 +16,9 @@ fun main() {
 private fun generateField(): MutableList<MutableList<String>> {
     val field: MutableList<MutableList<String>> = mutableListOf()
     repeat(FIELD_SIZE) {
-        field.add(mutableListOf(".", ".", ".", ".", ".", ".", ".", ".", "."))
+        val line = mutableListOf<String>()
+        repeat(FIELD_SIZE) { line.add(".") }
+        field.add(line)
     }
     return field
 }

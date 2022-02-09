@@ -13,13 +13,32 @@ enum class GameState {
     Lost
 }
 
-data class Move(val x: Int, val y: Int, val moveType: String)
+class Move {
+    val x: Int;
+    val y: Int;
+    val moveType: String
+
+    init {
+        println("Set/unset mine marks or claim a cell as free:")
+        val input = readLine()!!.split(" ").toList()
+        val coordinates = input.subList(0, 2)
+        moveType = input[2]
+        x = coordinates[1].toInt() - 1
+        y = coordinates[0].toInt() - 1
+    }
+
+    fun getCoordinates(): Pair<Int, Int> {
+        return Pair(x, y)
+    }
+}
 
 data class Field(val mineCount: Int) {
     private var mineField: MutableList<MutableList<String>> = generateField()
+
     init {
         fillFieldWithMines()
     }
+
     private val playerMoves: MutableList<MutableList<String>> = generateField()
 
     private fun generateField(): MutableList<MutableList<String>> {
@@ -96,7 +115,7 @@ data class Field(val mineCount: Int) {
     }
 
     fun setMark(move: Move) {
-        val (x, y) = move
+        val (x, y) = move.getCoordinates()
         val symbol = playerMoves[y][x]
         if (symbol in "1".."9") {
             println("There is a number here!")
@@ -122,7 +141,7 @@ fun main() {
     do {
         field.drawField()
         field.drawMineField()
-        val move = getUserInput()
+        val move = Move()
         if (move.moveType == "mine") {
             field.setMark(move)
         } else {
@@ -132,24 +151,4 @@ fun main() {
     } while (gameState == GameState.Playing)
 
     println("Congratulations! You found all the mines!")
-}
-
-fun getUserInput(): Move {
-    println("Set/unset mine marks or claim a cell as free:")
-    val input = readLine()!!.split(" ").toList()
-    val coordinates = input.subList(0, 2)
-    val moveType = input[2]
-    val x = coordinates[1].toInt() - 1
-    val y = coordinates[0].toInt() - 1
-    return Move(x, y, moveType)
-}
-
-private fun createFieldWithHiddenMines(field: MutableList<MutableList<String>>): MutableList<MutableList<String>> {
-    val copiedMinefield = mutableListOf<MutableList<String>>()
-    for (line in field) {
-        val modifiedLine = mutableListOf<String>()
-        line.forEach { modifiedLine.add(if (it == MINE_SYMBOL) EMPTY_FIELD_SYMBOL else it) }
-        copiedMinefield.add(modifiedLine)
-    }
-    return copiedMinefield
 }

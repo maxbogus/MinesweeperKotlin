@@ -32,6 +32,20 @@ private fun fillFieldWithMines(
         if (field[column][row] != "X") {
             field[column][row] = "X"
             // populate with numbers
+            val lowRowLimit = if (row >= 1) row - 1 else 0
+            val highRowLimit = if (row <= 7) row + 1 else 8
+            val leftColumnLimit = if (column >= 1) column - 1 else 0
+            val rightColumnLimit = if (column <= 7) column + 1 else 8
+            for (rowAroundMine in lowRowLimit..highRowLimit) {
+                for (columnAroundMine in leftColumnLimit..rightColumnLimit) {
+                    if (field[columnAroundMine][rowAroundMine] == ".") {
+                        field[columnAroundMine][rowAroundMine] = "1"
+                    } else if (field[columnAroundMine][rowAroundMine] != "X") {
+                        field[columnAroundMine][rowAroundMine] = "${field[columnAroundMine][rowAroundMine].toInt() + 1}"
+                    }
+                }
+            }
+
             counter++
         }
     } while (counter < limit)

@@ -1,5 +1,6 @@
 package minesweeper
 
+import java.util.*
 import kotlin.random.Random
 
 // Game Constraints
@@ -18,8 +19,8 @@ enum class GameState {
 }
 
 class Move {
-    private val x: Int
-    private val y: Int
+    val x: Int
+    val y: Int
     val moveType: String
 
     init {
@@ -37,13 +38,9 @@ class Move {
 }
 
 data class Field(val mineCount: Int) {
-    private var mineField: MutableList<MutableList<String>> = generateField()
-
-    init {
-        fillFieldWithMines()
-    }
-
-    private val playerMoves: MutableList<MutableList<String>> = generateField()
+    private val mineField: MutableList<MutableList<String>> = generateField()
+    private var playerMoves: MutableList<MutableList<String>> = generateField()
+    var firstMove: Boolean = true
 
     private fun generateField(): MutableList<MutableList<String>> {
         val field: MutableList<MutableList<String>> = mutableListOf()
@@ -69,12 +66,12 @@ data class Field(val mineCount: Int) {
         return GameState.Won
     }
 
-    private fun fillFieldWithMines() {
+    fun fillFieldWithMines(move: Move) {
         var counter = 0
         do {
             val column = Random.nextInt(0, FIELD_SIZE)
             val row = Random.nextInt(0, FIELD_SIZE)
-            if (mineField[column][row] != MINE_SYMBOL) {
+            if (mineField[column][row] != MINE_SYMBOL && column != move.x && row != move.y) {
                 mineField[column][row] = MINE_SYMBOL
                 val lowRowLimit = if (row >= 1) row - 1 else 0
                 val highRowLimit = if (row <= 7) row + 1 else 8
@@ -94,6 +91,7 @@ data class Field(val mineCount: Int) {
                 counter++
             }
         } while (counter < mineCount)
+        firstMove = false
     }
 
     fun drawField() {
@@ -101,17 +99,6 @@ data class Field(val mineCount: Int) {
         println("—│—————————│")
         var counter = 1
         for (line in playerMoves) {
-            println("$counter|${line.joinToString("")}|")
-            counter++
-        }
-        println("—│—————————│")
-    }
-
-    fun drawMineField() {
-        println(" │123456789│")
-        println("—│—————————│")
-        var counter = 1
-        for (line in mineField) {
             println("$counter|${line.joinToString("")}|")
             counter++
         }
@@ -129,8 +116,57 @@ data class Field(val mineCount: Int) {
         }
     }
 
+    fun openFreeSpace(move: Pair<Int, Int>) {
+        val queue: Queue<Pair<Int, Int>> = LinkedList()
+        queue.add(move)
+        val traversed: MutableList<Pair<Int, Int>> = mutableListOf(move)
+        do {
+            val (x, y) = queue.peek()
+            when (val playerFound = mineField[y][x]) {
+                in "1".."9" -> {
+                    playerMoves[y][x] = playerFound
+                }
+                EXPLORED_SYMBOL, MINE_SYMBOL -> {
+                }
+                else -> {
+                    val lowRowLimit = if (y >= 1) y - 1 else 0
+                    val highRowLimit = if (y <= 7) y + 1 else 8
+                    val leftColumnLimit = if (x >= 1) x - 1 else 0
+                    val rightColumnLimit = if (x <= 7) x + 1 else 8
+                    for (rowAroundMine in lowRowLimit..highRowLimit) {
+                        for (columnAroundMine in leftColumnLimit..rightColumnLimit) {
+                            val foundSymbol = mineField[columnAroundMine][rowAroundMine]
+                            if (foundSymbol == UNEXPLORED_SYMBOL) {
+                                playerMoves[columnAroundMine][rowAroundMine] = EXPLORED_SYMBOL
+                            } else if (foundSymbol in "1".."9") {
+                                playerMoves[columnAroundMine][rowAroundMine] = foundSymbol
+                            }
+                            if (!traversed.contains(Pair(columnAroundMine, rowAroundMine))) {
+                                queue.add(Pair(columnAroundMine, rowAroundMine))
+                            }
+                        }
+                    }
+                }
+            }
+            traversed.add(Pair(x, y))
+            queue.remove()
+        } while (queue.size != 0)
+    }
+
     fun exploreField(move: Move): GameState {
-        TODO("Not yet implemented")
+        when (mineField[move.y][move.x]) {
+            MINE_SYMBOL -> {
+                return GameState.Lost
+            }
+            UNEXPLORED_SYMBOL -> {
+                openFreeSpace(move.getCoordinates())
+            }
+            EXPLORED_SYMBOL -> {
+            }
+            else -> {
+                playerMoves[move.y][move.x] = mineField[move.y][move.x]
+            }
+        }
         return GameState.Playing
     }
 }
@@ -144,15 +180,24 @@ fun main() {
 
     do {
         field.drawField()
-        field.drawMineField()
         val move = Move()
-        if (move.moveType == "mine") {
+        gameState = if (move.moveType == "mine") {
             field.setMark(move)
+            field.compareFields()
         } else {
-            gameState = field.exploreField(move)
+            if (field.firstMove) {
+                field.fillFieldWithMines(move)
+                field.openFreeSpace(move.getCoordinates())
+                GameState.Playing
+            } else {
+                field.exploreField(move)
+            }
         }
-        gameState = field.compareFields()
     } while (gameState == GameState.Playing)
 
-    println("Congratulations! You found all the mines!")
+    if (gameState == GameState.Lost) {
+        println("You stepped on a mine and failed!")
+    } else {
+        println("Congratulations! You found all the mines!")
+    }
 }

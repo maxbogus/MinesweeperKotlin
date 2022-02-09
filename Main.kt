@@ -7,6 +7,12 @@ private const val FIELD_SIZE = 9
 private const val MINE_SYMBOL = "X"
 private const val MARKER_SYMBOL = "*"
 
+enum class GameState {
+    Playing,
+    Won,
+    Lost
+}
+
 fun main() {
     println("How many mines do you want on the field?")
     val limit = readLine()!!.toInt()
@@ -17,15 +23,15 @@ fun main() {
 
     do {
         drawField(fieldWithHiddenMines)
-        println("Set/delete mines marks (x and y coordinates)")
+        println("Set/unset mine marks or claim a cell as free:")
         makeMove(fieldWithHiddenMines)
-    } while (!checkWin(fieldWithHiddenMines, field))
+    } while (checkWin(fieldWithHiddenMines, field) == GameState.Playing)
 
     println("Congratulations! You found all the mines!")
 }
 
-fun checkWin(fieldWithHiddenMines: MutableList<MutableList<String>>, field: MutableList<MutableList<String>>): Boolean {
-    var result = true
+fun checkWin(fieldWithHiddenMines: MutableList<MutableList<String>>, field: MutableList<MutableList<String>>): GameState {
+    var result = GameState.Won
     for ((index, line) in field.withIndex()) {
         var actualResult = ""
         for (ch in fieldWithHiddenMines[index]) {
@@ -33,7 +39,7 @@ fun checkWin(fieldWithHiddenMines: MutableList<MutableList<String>>, field: Muta
         }
         val expectedResult = line.joinToString("")
         if (actualResult != expectedResult) {
-            result = false
+            result = GameState.Playing
             break
         }
     }
@@ -41,12 +47,15 @@ fun checkWin(fieldWithHiddenMines: MutableList<MutableList<String>>, field: Muta
 }
 
 private fun makeMove(fieldWithHiddenMines: MutableList<MutableList<String>>) {
-    val input = readLine()!!.split(" ").map { it.toInt() }.toList()
-    val symbol = fieldWithHiddenMines[input[0] - 1][input[1] - 1]
+    val input = readLine()!!.split(" ").toList()
+    val coordinates = input.subList(0, 2)
+    val x = coordinates[0].toInt() - 1
+    val y = coordinates[1].toInt() - 1
+    val symbol = fieldWithHiddenMines[y][x]
     if (symbol in "1".."9") {
         println("There is a number here!")
     } else {
-        fieldWithHiddenMines[input[0] - 1][input[1] - 1] =
+        fieldWithHiddenMines[y][x] =
             if (symbol == EMPTY_FIELD_SYMBOL) MARKER_SYMBOL else EMPTY_FIELD_SYMBOL
     }
 }

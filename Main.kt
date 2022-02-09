@@ -49,8 +49,8 @@ fun checkWin(fieldWithHiddenMines: MutableList<MutableList<String>>, field: Muta
 private fun makeMove(fieldWithHiddenMines: MutableList<MutableList<String>>) {
     val input = readLine()!!.split(" ").toList()
     val coordinates = input.subList(0, 2)
-    val x = coordinates[0].toInt() - 1
-    val y = coordinates[1].toInt() - 1
+    val x = coordinates[1].toInt() - 1
+    val y = coordinates[0].toInt() - 1
     val symbol = fieldWithHiddenMines[y][x]
     if (symbol in "1".."9") {
         println("There is a number here!")

@@ -27,9 +27,9 @@ class Move {
         println("Set/unset mine marks or claim a cell as free:")
         val input = readLine()!!.split(" ").toList()
         val coordinates = input.subList(0, 2)
-        moveType = input[2]
         x = coordinates[1].toInt() - 1
         y = coordinates[0].toInt() - 1
+        moveType = input[2]
     }
 
     fun getCoordinates(): Pair<Int, Int> {
@@ -69,21 +69,21 @@ data class Field(val mineCount: Int) {
     fun fillFieldWithMines(move: Move) {
         var counter = 0
         do {
-            val column = Random.nextInt(0, FIELD_SIZE)
-            val row = Random.nextInt(0, FIELD_SIZE)
-            if (mineField[column][row] != MINE_SYMBOL && column != move.x && row != move.y) {
-                mineField[column][row] = MINE_SYMBOL
-                val lowRowLimit = if (row >= 1) row - 1 else 0
-                val highRowLimit = if (row <= 7) row + 1 else 8
-                val leftColumnLimit = if (column >= 1) column - 1 else 0
-                val rightColumnLimit = if (column <= 7) column + 1 else 8
-                for (rowAroundMine in lowRowLimit..highRowLimit) {
-                    for (columnAroundMine in leftColumnLimit..rightColumnLimit) {
-                        if (mineField[columnAroundMine][rowAroundMine] == UNEXPLORED_SYMBOL) {
-                            mineField[columnAroundMine][rowAroundMine] = "1"
-                        } else if (mineField[columnAroundMine][rowAroundMine] != MINE_SYMBOL) {
-                            mineField[columnAroundMine][rowAroundMine] =
-                                "${mineField[columnAroundMine][rowAroundMine].toInt() + 1}"
+            val x = Random.nextInt(0, FIELD_SIZE)
+            val y = Random.nextInt(0, FIELD_SIZE)
+            if (mineField[x][y] != MINE_SYMBOL && x != move.x && y != move.y) {
+                mineField[x][y] = MINE_SYMBOL
+                val leftXLimit = if (x >= 1) x - 1 else 0
+                val rightXLimit = if (x <= 7) x + 1 else 8
+                val lowYLimit = if (y >= 1) y - 1 else 0
+                val highYLimit = if (y <= 7) y + 1 else 8
+                for (shiftedY in lowYLimit..highYLimit) {
+                    for (shiftedX in leftXLimit..rightXLimit) {
+                        if (mineField[shiftedX][shiftedY] == UNEXPLORED_SYMBOL) {
+                            mineField[shiftedX][shiftedY] = "1"
+                        } else if (mineField[shiftedX][shiftedY] != MINE_SYMBOL) {
+                            mineField[shiftedX][shiftedY] =
+                                "${mineField[shiftedX][shiftedY].toInt() + 1}"
                         }
                     }
                 }
@@ -107,11 +107,11 @@ data class Field(val mineCount: Int) {
 
     fun setMark(move: Move) {
         val (x, y) = move.getCoordinates()
-        val symbol = playerMoves[y][x]
+        val symbol = playerMoves[x][y]
         if (symbol in "1".."9") {
             println("There is a number here!")
         } else {
-            playerMoves[y][x] =
+            playerMoves[x][y] =
                 if (symbol == UNEXPLORED_SYMBOL) MARKER_SYMBOL else UNEXPLORED_SYMBOL
         }
     }
@@ -122,27 +122,27 @@ data class Field(val mineCount: Int) {
         val traversed: MutableList<Pair<Int, Int>> = mutableListOf(move)
         do {
             val (x, y) = queue.peek()
-            when (val playerFound = mineField[y][x]) {
+            when (val playerFound = mineField[x][y]) {
                 in "1".."9" -> {
-                    playerMoves[y][x] = playerFound
+                    playerMoves[x][y] = playerFound
                 }
                 EXPLORED_SYMBOL, MINE_SYMBOL -> {
                 }
                 else -> {
-                    val lowRowLimit = if (y >= 1) y - 1 else 0
-                    val highRowLimit = if (y <= 7) y + 1 else 8
-                    val leftColumnLimit = if (x >= 1) x - 1 else 0
-                    val rightColumnLimit = if (x <= 7) x + 1 else 8
-                    for (rowAroundMine in lowRowLimit..highRowLimit) {
-                        for (columnAroundMine in leftColumnLimit..rightColumnLimit) {
-                            val foundSymbol = mineField[columnAroundMine][rowAroundMine]
+                    val leftXLimit = if (x >= 1) x - 1 else 0
+                    val rightXLimit = if (x <= 7) x + 1 else 8
+                    val lowYLimit = if (y >= 1) y - 1 else 0
+                    val highYLimit = if (y <= 7) y + 1 else 8
+                    for (shiftedY in lowYLimit..highYLimit) {
+                        for (shiftedX in leftXLimit..rightXLimit) {
+                            val foundSymbol = mineField[shiftedX][shiftedY]
                             if (foundSymbol == UNEXPLORED_SYMBOL) {
-                                playerMoves[columnAroundMine][rowAroundMine] = EXPLORED_SYMBOL
+                                playerMoves[shiftedX][shiftedY] = EXPLORED_SYMBOL
                             } else if (foundSymbol in "1".."9") {
-                                playerMoves[columnAroundMine][rowAroundMine] = foundSymbol
+                                playerMoves[shiftedX][shiftedY] = foundSymbol
                             }
-                            if (!traversed.contains(Pair(columnAroundMine, rowAroundMine))) {
-                                queue.add(Pair(columnAroundMine, rowAroundMine))
+                            if (!traversed.contains(Pair(shiftedX, shiftedY))) {
+                                queue.add(Pair(shiftedX, shiftedY))
                             }
                         }
                     }
@@ -154,7 +154,7 @@ data class Field(val mineCount: Int) {
     }
 
     fun exploreField(move: Move): GameState {
-        when (mineField[move.y][move.x]) {
+        when (mineField[move.x][move.y]) {
             MINE_SYMBOL -> {
                 return GameState.Lost
             }
@@ -164,7 +164,7 @@ data class Field(val mineCount: Int) {
             EXPLORED_SYMBOL -> {
             }
             else -> {
-                playerMoves[move.y][move.x] = mineField[move.y][move.x]
+                playerMoves[move.x][move.y] = mineField[move.x][move.y]
             }
         }
         return GameState.Playing

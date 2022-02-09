@@ -2,10 +2,14 @@ package minesweeper
 
 import kotlin.random.Random
 
-private const val EMPTY_FIELD_SYMBOL = "."
+// Game Constraints
 private const val FIELD_SIZE = 9
+
+// Game Art
+private const val UNEXPLORED_SYMBOL = "."
 private const val MINE_SYMBOL = "X"
 private const val MARKER_SYMBOL = "*"
+private const val EXPLORED_SYMBOL = "/"
 
 enum class GameState {
     Playing,
@@ -14,8 +18,8 @@ enum class GameState {
 }
 
 class Move {
-    val x: Int;
-    val y: Int;
+    private val x: Int
+    private val y: Int
     val moveType: String
 
     init {
@@ -45,7 +49,7 @@ data class Field(val mineCount: Int) {
         val field: MutableList<MutableList<String>> = mutableListOf()
         repeat(FIELD_SIZE) {
             val line = mutableListOf<String>()
-            repeat(FIELD_SIZE) { line.add(EMPTY_FIELD_SYMBOL) }
+            repeat(FIELD_SIZE) { line.add(UNEXPLORED_SYMBOL) }
             field.add(line)
         }
         return field
@@ -78,7 +82,7 @@ data class Field(val mineCount: Int) {
                 val rightColumnLimit = if (column <= 7) column + 1 else 8
                 for (rowAroundMine in lowRowLimit..highRowLimit) {
                     for (columnAroundMine in leftColumnLimit..rightColumnLimit) {
-                        if (mineField[columnAroundMine][rowAroundMine] == EMPTY_FIELD_SYMBOL) {
+                        if (mineField[columnAroundMine][rowAroundMine] == UNEXPLORED_SYMBOL) {
                             mineField[columnAroundMine][rowAroundMine] = "1"
                         } else if (mineField[columnAroundMine][rowAroundMine] != MINE_SYMBOL) {
                             mineField[columnAroundMine][rowAroundMine] =
@@ -121,7 +125,7 @@ data class Field(val mineCount: Int) {
             println("There is a number here!")
         } else {
             playerMoves[y][x] =
-                if (symbol == EMPTY_FIELD_SYMBOL) MARKER_SYMBOL else EMPTY_FIELD_SYMBOL
+                if (symbol == UNEXPLORED_SYMBOL) MARKER_SYMBOL else UNEXPLORED_SYMBOL
         }
     }
 

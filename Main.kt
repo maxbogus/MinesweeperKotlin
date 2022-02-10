@@ -53,10 +53,14 @@ data class Field(val mineCount: Int) {
     }
 
     fun compareFields(): GameState {
-        for ((index, line) in playerMoves.withIndex()) {
+        for ((index, line) in mineField.withIndex()) {
             var actualResult = ""
-            for (ch in mineField[index]) {
-                actualResult += if (ch == MARKER_SYMBOL) MINE_SYMBOL else ch
+            for (ch in playerMoves[index]) {
+                actualResult += when (ch) {
+                    EXPLORED_SYMBOL -> UNEXPLORED_SYMBOL
+                    MARKER_SYMBOL -> MINE_SYMBOL
+                    else -> ch
+                }
             }
             val expectedResult = line.joinToString("")
             if (actualResult != expectedResult) {
@@ -88,30 +92,31 @@ data class Field(val mineCount: Int) {
                         }
                     }
                 }
-                println(counter)
                 counter++
             }
         } while (counter < mineCount)
-        mineField[move.x][move.y] = EXPLORED_SYMBOL
-
+        mineField[move.x][move.y] = UNEXPLORED_SYMBOL
         var countMines = 0
-        val leftXLimit = if (move.x >= 1) move.y - 1 else 0
+        val leftXLimit = if (move.x >= 1) move.x - 1 else 0
         val rightXLimit = if (move.x <= 7) move.x + 1 else 8
         val lowYLimit = if (move.y >= 1) move.y - 1 else 0
         val highYLimit = if (move.y <= 7) move.y + 1 else 8
         for (shiftedY in lowYLimit..highYLimit) {
             for (shiftedX in leftXLimit..rightXLimit) {
-                if (mineField[shiftedX][shiftedY] in "1".."9") {
+                if (mineField[shiftedX][shiftedY] in "2".."9") {
                     mineField[shiftedX][shiftedY] =
                         "${mineField[shiftedX][shiftedY].toInt() - 1}"
+                } else if (mineField[shiftedX][shiftedY] == "1") {
+                    mineField[shiftedX][shiftedY] = UNEXPLORED_SYMBOL
                 } else if (mineField[shiftedX][shiftedY] == MINE_SYMBOL) {
                     countMines += 1
                 }
             }
         }
         if (countMines > 0) {
-            mineField[move.x][move.y] = "${countMines}"
+            mineField[move.x][move.y] = "$countMines"
         }
+        drawMineField()
         firstMove = false
     }
 
@@ -120,6 +125,17 @@ data class Field(val mineCount: Int) {
         println("—│—————————│")
         var counter = 1
         for (line in playerMoves) {
+            println("$counter|${line.joinToString("")}|")
+            counter++
+        }
+        println("—│—————————│")
+    }
+
+    fun drawMineField() {
+        println(" │123456789│")
+        println("—│—————————│")
+        var counter = 1
+        for (line in mineField) {
             println("$counter|${line.joinToString("")}|")
             counter++
         }
@@ -137,41 +153,29 @@ data class Field(val mineCount: Int) {
         }
     }
 
-    fun openFreeSpace(move: Pair<Int, Int>) {
-        val queue: Queue<Pair<Int, Int>> = LinkedList()
-        queue.add(move)
-        val traversed: MutableList<Pair<Int, Int>> = mutableListOf(move)
-        do {
-            val (x, y) = queue.peek()
-            when (val playerFound = mineField[x][y]) {
-                in "1".."9" -> {
-                    playerMoves[x][y] = playerFound
-                }
-                EXPLORED_SYMBOL, MINE_SYMBOL -> {
-                }
-                else -> {
-                    val leftXLimit = if (x >= 1) x - 1 else 0
-                    val rightXLimit = if (x <= 7) x + 1 else 8
-                    val lowYLimit = if (y >= 1) y - 1 else 0
-                    val highYLimit = if (y <= 7) y + 1 else 8
-                    for (shiftedY in lowYLimit..highYLimit) {
-                        for (shiftedX in leftXLimit..rightXLimit) {
-                            val foundSymbol = mineField[shiftedX][shiftedY]
-                            if (foundSymbol == UNEXPLORED_SYMBOL) {
-                                playerMoves[shiftedX][shiftedY] = EXPLORED_SYMBOL
-                            } else if (foundSymbol in "1".."9") {
-                                playerMoves[shiftedX][shiftedY] = foundSymbol
-                            }
-                            if (!traversed.contains(Pair(shiftedX, shiftedY))) {
-                                queue.add(Pair(shiftedX, shiftedY))
-                            }
-                        }
-                    }
-                }
-            }
-            traversed.add(Pair(x, y))
-            queue.remove()
-        } while (queue.size != 0)
+    fun openFreeSpaceFloodFill(move: Pair<Int, Int>) {
+        if (playerMoves[move.first][move.second] == EXPLORED_SYMBOL || playerMoves[move.first][move.second] in "1".."9") {
+            return
+        }
+        if (mineField[move.first][move.second] == MINE_SYMBOL) {
+            return
+        }
+        playerMoves[move.first][move.second] =
+            if (mineField[move.first][move.second] == UNEXPLORED_SYMBOL) EXPLORED_SYMBOL else mineField[move.first][move.second]
+        if (move.first + 1 < 9) {
+            openFreeSpaceFloodFill(Pair(move.first + 1, move.second))
+        }
+        if (move.first - 1 >= 0) {
+            openFreeSpaceFloodFill(Pair(move.first - 1, move.second))
+        }
+        if (move.second + 1 < 9) {
+            openFreeSpaceFloodFill(Pair(move.first, move.second + 1))
+        }
+        if (move.second - 1 >= 0) {
+            openFreeSpaceFloodFill(Pair(move.first, move.second - 1))
+        }
+
+        return
     }
 
     fun exploreField(move: Move): GameState {
@@ -180,7 +184,7 @@ data class Field(val mineCount: Int) {
                 return GameState.Lost
             }
             UNEXPLORED_SYMBOL -> {
-                openFreeSpace(move.getCoordinates())
+                openFreeSpaceFloodFill(move.getCoordinates())
             }
             EXPLORED_SYMBOL -> {
             }
@@ -207,11 +211,8 @@ fun main() {
             field.compareFields()
         } else {
             if (field.firstMove) {
-                println("firstMove")
                 field.fillFieldWithMines(move)
-                println("filled")
-                field.openFreeSpace(move.getCoordinates())
-                println("opened")
+                field.openFreeSpaceFloodFill(move.getCoordinates())
                 GameState.Playing
             } else {
                 field.exploreField(move)

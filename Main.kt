@@ -68,10 +68,11 @@ data class Field(val mineCount: Int) {
 
     fun fillFieldWithMines(move: Move) {
         var counter = 0
+        mineField[move.x][move.y] = MINE_SYMBOL
         do {
             val x = Random.nextInt(0, FIELD_SIZE)
             val y = Random.nextInt(0, FIELD_SIZE)
-            if (mineField[x][y] != MINE_SYMBOL && x != move.x && y != move.y) {
+            if (mineField[x][y] != MINE_SYMBOL) {
                 mineField[x][y] = MINE_SYMBOL
                 val leftXLimit = if (x >= 1) x - 1 else 0
                 val rightXLimit = if (x <= 7) x + 1 else 8
@@ -87,10 +88,30 @@ data class Field(val mineCount: Int) {
                         }
                     }
                 }
-
+                println(counter)
                 counter++
             }
         } while (counter < mineCount)
+        mineField[move.x][move.y] = EXPLORED_SYMBOL
+
+        var countMines = 0
+        val leftXLimit = if (move.x >= 1) move.y - 1 else 0
+        val rightXLimit = if (move.x <= 7) move.x + 1 else 8
+        val lowYLimit = if (move.y >= 1) move.y - 1 else 0
+        val highYLimit = if (move.y <= 7) move.y + 1 else 8
+        for (shiftedY in lowYLimit..highYLimit) {
+            for (shiftedX in leftXLimit..rightXLimit) {
+                if (mineField[shiftedX][shiftedY] in "1".."9") {
+                    mineField[shiftedX][shiftedY] =
+                        "${mineField[shiftedX][shiftedY].toInt() - 1}"
+                } else if (mineField[shiftedX][shiftedY] == MINE_SYMBOL) {
+                    countMines += 1
+                }
+            }
+        }
+        if (countMines > 0) {
+            mineField[move.x][move.y] = "${countMines}"
+        }
         firstMove = false
     }
 
@@ -186,8 +207,11 @@ fun main() {
             field.compareFields()
         } else {
             if (field.firstMove) {
+                println("firstMove")
                 field.fillFieldWithMines(move)
+                println("filled")
                 field.openFreeSpace(move.getCoordinates())
+                println("opened")
                 GameState.Playing
             } else {
                 field.exploreField(move)

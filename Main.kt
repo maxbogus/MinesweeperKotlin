@@ -10,6 +10,7 @@ private const val UNEXPLORED_SYMBOL = "."
 private const val MINE_SYMBOL = "X"
 private const val MARKER_SYMBOL = "*"
 private const val EXPLORED_SYMBOL = "/"
+private const val PLAYER_SYMBOL = "@"
 
 enum class GameState {
     Playing,
@@ -71,10 +72,11 @@ data class Field(val mineCount: Int) {
 
     fun fillFieldWithMines(move: Move) {
         var counter = 0
+        mineField[move.x][move.y] = PLAYER_SYMBOL
         do {
             val x = Random.nextInt(0, FIELD_SIZE)
             val y = Random.nextInt(0, FIELD_SIZE)
-            if (mineField[x][y] != MINE_SYMBOL || (x == move.x && y == move.y)) {
+            if (mineField[x][y] != MINE_SYMBOL && mineField[x][y] != PLAYER_SYMBOL) {
                 mineField[x][y] = MINE_SYMBOL
                 counter += 1
             }
@@ -90,13 +92,16 @@ data class Field(val mineCount: Int) {
                         for (j in mineYLowLimit..mineYHighLimit) {
                             if (mineField[i][j] in "1".."9") {
                                 mineField[i][j] = "${mineField[i][j].toInt() + 1}"
-                            } else if (mineField[i][j] == UNEXPLORED_SYMBOL) {
+                            } else if (mineField[i][j] == UNEXPLORED_SYMBOL || mineField[i][j] == PLAYER_SYMBOL) {
                                 mineField[i][j] = "1"
                             }
                         }
                     }
                 }
             }
+        }
+        if (mineField[move.x][move.y] == PLAYER_SYMBOL) {
+            mineField[move.x][move.y] = UNEXPLORED_SYMBOL
         }
         firstMove = false
     }
@@ -154,7 +159,6 @@ data class Field(val mineCount: Int) {
             UNEXPLORED_SYMBOL -> EXPLORED_SYMBOL
             in "0".."9" -> mineFieldValue
             else -> {
-                println(mineFieldValue)
                 mineFieldValue
             }
         }

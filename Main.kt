@@ -1,6 +1,5 @@
 package minesweeper
 
-import java.util.*
 import kotlin.random.Random
 
 // Game Constraints
@@ -72,51 +71,33 @@ data class Field(val mineCount: Int) {
 
     fun fillFieldWithMines(move: Move) {
         var counter = 0
-        mineField[move.x][move.y] = MINE_SYMBOL
         do {
             val x = Random.nextInt(0, FIELD_SIZE)
             val y = Random.nextInt(0, FIELD_SIZE)
-            if (mineField[x][y] != MINE_SYMBOL) {
+            if (mineField[x][y] != MINE_SYMBOL || (x == move.x && y == move.y)) {
                 mineField[x][y] = MINE_SYMBOL
-                val leftXLimit = if (x >= 1) x - 1 else 0
-                val rightXLimit = if (x <= 7) x + 1 else 8
-                val lowYLimit = if (y >= 1) y - 1 else 0
-                val highYLimit = if (y <= 7) y + 1 else 8
-                for (shiftedY in lowYLimit..highYLimit) {
-                    for (shiftedX in leftXLimit..rightXLimit) {
-                        if (mineField[shiftedX][shiftedY] == UNEXPLORED_SYMBOL) {
-                            mineField[shiftedX][shiftedY] = "1"
-                        } else if (mineField[shiftedX][shiftedY] != MINE_SYMBOL) {
-                            mineField[shiftedX][shiftedY] =
-                                "${mineField[shiftedX][shiftedY].toInt() + 1}"
+                counter += 1
+            }
+        } while (counter < mineCount)
+        for (x in 0..FIELD_SIZE - 1) {
+            for (y in 0..FIELD_SIZE - 1) {
+                if (mineField[x][y] == MINE_SYMBOL) {
+                    val mineXLowLimit = if (x == 0) 0 else x - 1
+                    val mineXHighLimit = if (x == 8) 8 else x + 1
+                    val mineYLowLimit = if (y == 0) 0 else y - 1
+                    val mineYHighLimit = if (y == 8) 8 else y + 1
+                    for (i in mineXLowLimit..mineXHighLimit) {
+                        for (j in mineYLowLimit..mineYHighLimit) {
+                            if (mineField[i][j] in "1".."9") {
+                                mineField[i][j] = "${mineField[i][j].toInt() + 1}"
+                            } else if (mineField[i][j] == UNEXPLORED_SYMBOL) {
+                                mineField[i][j] = "1"
+                            }
                         }
                     }
                 }
-                counter++
-            }
-        } while (counter < mineCount)
-        mineField[move.x][move.y] = UNEXPLORED_SYMBOL
-        var countMines = 0
-        val leftXLimit = if (move.x >= 1) move.x - 1 else 0
-        val rightXLimit = if (move.x <= 7) move.x + 1 else 8
-        val lowYLimit = if (move.y >= 1) move.y - 1 else 0
-        val highYLimit = if (move.y <= 7) move.y + 1 else 8
-        for (shiftedY in lowYLimit..highYLimit) {
-            for (shiftedX in leftXLimit..rightXLimit) {
-                if (mineField[shiftedX][shiftedY] in "2".."9") {
-                    mineField[shiftedX][shiftedY] =
-                        "${mineField[shiftedX][shiftedY].toInt() - 1}"
-                } else if (mineField[shiftedX][shiftedY] == "1") {
-                    mineField[shiftedX][shiftedY] = UNEXPLORED_SYMBOL
-                } else if (mineField[shiftedX][shiftedY] == MINE_SYMBOL) {
-                    countMines += 1
-                }
             }
         }
-        if (countMines > 0) {
-            mineField[move.x][move.y] = "$countMines"
-        }
-        drawMineField()
         firstMove = false
     }
 
@@ -144,24 +125,39 @@ data class Field(val mineCount: Int) {
 
     fun setMark(move: Move) {
         val (x, y) = move.getCoordinates()
-        val symbol = playerMoves[x][y]
-        if (symbol in "1".."9") {
-            println("There is a number here!")
-        } else {
-            playerMoves[x][y] =
-                if (symbol == UNEXPLORED_SYMBOL) MARKER_SYMBOL else UNEXPLORED_SYMBOL
+        when (playerMoves[x][y]) {
+            in "1".."9" -> {
+                println("There is a number here!")
+            }
+            MARKER_SYMBOL -> {
+                playerMoves[x][y] = UNEXPLORED_SYMBOL
+            }
+            UNEXPLORED_SYMBOL -> {
+                playerMoves[x][y] = MARKER_SYMBOL
+            }
+            else -> {
+            }
         }
     }
 
     fun openFreeSpaceFloodFill(move: Pair<Int, Int>) {
-        if (playerMoves[move.first][move.second] == EXPLORED_SYMBOL || playerMoves[move.first][move.second] in "1".."9") {
+        val playerFieldValue = playerMoves[move.first][move.second]
+        val mineFieldValue = mineField[move.first][move.second]
+        if (playerFieldValue == EXPLORED_SYMBOL || playerFieldValue in "0".."9") {
             return
         }
-        if (mineField[move.first][move.second] == MINE_SYMBOL) {
+        if (mineFieldValue == MINE_SYMBOL) {
             return
         }
-        playerMoves[move.first][move.second] =
-            if (mineField[move.first][move.second] == UNEXPLORED_SYMBOL) EXPLORED_SYMBOL else mineField[move.first][move.second]
+
+        playerMoves[move.first][move.second] = when (mineFieldValue) {
+            UNEXPLORED_SYMBOL -> EXPLORED_SYMBOL
+            in "0".."9" -> mineFieldValue
+            else -> {
+                println(mineFieldValue)
+                mineFieldValue
+            }
+        }
         if (move.first + 1 < 9) {
             openFreeSpaceFloodFill(Pair(move.first + 1, move.second))
         }
@@ -183,13 +179,8 @@ data class Field(val mineCount: Int) {
             MINE_SYMBOL -> {
                 return GameState.Lost
             }
-            UNEXPLORED_SYMBOL -> {
-                openFreeSpaceFloodFill(move.getCoordinates())
-            }
-            EXPLORED_SYMBOL -> {
-            }
             else -> {
-                playerMoves[move.x][move.y] = mineField[move.x][move.y]
+                openFreeSpaceFloodFill(move.getCoordinates())
             }
         }
         return GameState.Playing
